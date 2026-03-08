@@ -19,7 +19,8 @@ const OLD_SK = { tasks:"nb2-tasks", projects:"nb2-projects", levers:"nb2-levers"
 const FF = "'Crimson Pro',Georgia,serif";
 const FS = "'Work Sans',system-ui,sans-serif";
 
-import { load as ld, save as sv } from "./storage.js"
+async function ld(k,fb){try{const r=await window.storage.get(k);return r?JSON.parse(r.value):fb;}catch{return fb;}}
+async function sv(k,d){try{await window.storage.set(k,JSON.stringify(d));}catch(e){console.error(e);}}
 async function ldM(nk,ok,fb){const n=await ld(nk,null);if(n!==null)return n;if(ok){const o=await ld(ok,null);if(o!==null){await sv(nk,o);return o;}}return fb;}
 const uid=()=>`${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
 const pColor=name=>{let h=0;for(let i=0;i<name.length;i++)h=name.charCodeAt(i)+((h<<5)-h);return PERSON_COLORS[Math.abs(h)%PERSON_COLORS.length];};
@@ -137,18 +138,26 @@ function UndoToast({task,onUndo,onDismiss}){
 }
 
 // ─── Import Modal ───
-function ImportModal({mode,onImportOne,onClose,categories,projects,levers,allOwners,realms}){
+function ImportModal({mode,onImportOne,onClose,categories,projects,levers,allOwners,realms,existingTasks}){
   const[input,setInput]=useState("");const[jsonOut,setJsonOut]=useState("");const[loading,setLoading]=useState(false);const[error,setError]=useState(null);
-  const[staged,setStaged]=useState(null);const[liveIds,setLiveIds]=useState(new Set());
+  const[staged,setStaged]=useState(null);const[liveIds,setLiveIds]=useState(new Set());const[skippedIds,setSkippedIds]=useState(new Set());
   const openProjects=alphaSortProjects(projects.filter(p=>!p.closed));
+  // Dedup: normalize text for fuzzy matching
+  const normalize=s=>(s||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const existingNorms=(existingTasks||[]).map(t=>normalize(t.text));
+  const isDupe=text=>{const n=normalize(text);if(!n)return false;return existingNorms.some(e=>e===n||(n.length>8&&e.includes(n))||(e.length>8&&n.includes(e)));};
   const callAI=async m=>{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:m})});const d=await r.json();return d.content?.map(c=>c.type==="text"?c.text:"").join("").trim();};
   const sp=`Extract tasks. Return ONLY valid JSON array.\nEach: {"text":"...","category":"Go Do|Follow Up|Call List|Deadline|Idea","owner":"","dueDate":"","focusToday":false,"realm":"Work"}\nProjects: ${openProjects.map(p=>p.name).join(", ")||"none"}`;
   const gen=async()=>{if(!input.trim())return;setLoading(true);setError(null);try{const t=await callAI([{role:"user",content:[{type:"text",text:sp+"\n\nInput:\n"+input}]}]);setJsonOut(t.replace(/```json|```/g,"").trim());}catch{setError("Failed.");}setLoading(false);};
-  const toStage=()=>{try{const src=mode==="json"?input:jsonOut;const arr=JSON.parse(src);if(!Array.isArray(arr))throw 0;setStaged(arr.map((t,i)=>{const proj=openProjects.find(p=>p.name===t.project);return{_i:i,text:t.text||"",category:t.category||"Go Do",project:t.project||"",lever:proj?.lever||"",owner:t.owner||"",status:t.status||"Open",dueDate:t.dueDate||"",focusToday:t.focusToday||false,longTerm:false,notes:"",realm:t.realm||"Work"};}));setLiveIds(new Set());setError(null);}catch{setError("Invalid JSON.");}};
+  const toStage=()=>{try{const src=mode==="json"?input:jsonOut;const arr=JSON.parse(src);if(!Array.isArray(arr))throw 0;setStaged(arr.map((t,i)=>{const proj=openProjects.find(p=>p.name===t.project);return{_i:i,text:t.text||"",category:t.category||"Go Do",project:t.project||"",lever:proj?.lever||"",owner:t.owner||"",status:t.status||"Open",dueDate:t.dueDate||"",focusToday:t.focusToday||false,longTerm:false,notes:"",realm:t.realm||"Work",_dupe:isDupe(t.text||"")};}));setLiveIds(new Set());setSkippedIds(new Set());setError(null);}catch{setError("Invalid JSON.");}};
   const upS=(i,u)=>setStaged(p=>p.map((t,j)=>j===i?{...t,...u}:t));const rmS=i=>setStaged(p=>p.filter((_,j)=>j!==i));
-  const goOne=i=>{if(liveIds.has(i))return;const{_i,...t}=staged[i];onImportOne(t);setLiveIds(p=>new Set(p).add(i));};
-  const goRest=()=>{staged.filter((_,i)=>!liveIds.has(i)).forEach(({_i,...t})=>onImportOne(t));onClose();};
-  const allLive=staged&&staged.every((_,i)=>liveIds.has(i));const rem=staged?staged.filter((_,i)=>!liveIds.has(i)).length:0;
+  const skipOne=i=>setSkippedIds(p=>new Set(p).add(i));
+  const goOne=i=>{if(liveIds.has(i)||skippedIds.has(i))return;const{_i,_dupe,...t}=staged[i];onImportOne(t);setLiveIds(p=>new Set(p).add(i));};
+  const goRest=()=>{staged.filter((_,i)=>!liveIds.has(i)&&!skippedIds.has(i)&&!_._dupe).forEach(({_i,_dupe,...t})=>onImportOne(t));onClose();};
+  const dupeCount=staged?staged.filter(t=>t._dupe).length:0;
+  const rem=staged?staged.filter((t,i)=>!liveIds.has(i)&&!skippedIds.has(i)&&!t._dupe).length:0;
+  const dupeRem=staged?staged.filter((t,i)=>t._dupe&&!liveIds.has(i)&&!skippedIds.has(i)).length:0;
+  const allDone=staged&&rem===0&&dupeRem===0;
 
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",justifyContent:"center",alignItems:"flex-start",paddingTop:20,overflowY:"auto"}}>
     <div style={{background:"#fff",borderRadius:14,padding:22,width:"100%",maxWidth:600,margin:"0 16px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.15)",maxHeight:"90vh",overflowY:"auto"}}>
@@ -157,16 +166,19 @@ function ImportModal({mode,onImportOne,onClose,categories,projects,levers,allOwn
         <button onClick={onClose} style={{background:"#f5f3ee",border:"1px solid #e2e0db",borderRadius:6,padding:"3px 10px",fontSize:11,fontWeight:600,cursor:"pointer",color:"#2c2a25",fontFamily:FS}}>✕ Close</button>
       </div>
       {staged?<div>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><div style={{fontSize:12,fontWeight:700,fontFamily:FS}}>📋 {liveIds.size}/{staged.length}</div><button onClick={()=>setStaged(null)} style={{background:"#f5f3ee",color:"#2c2a25",border:"1px solid #e2e0db",borderRadius:5,padding:"3px 8px",fontSize:10,fontWeight:600,cursor:"pointer"}}>← Back</button></div>
-        <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:14}}>{staged.map((t,i)=>{const isLive=liveIds.has(i);const[et,setEt]=useState(false);const[tv,setTv]=useState(t.text);const commit=()=>{upS(i,{text:tv});setEt(false);};
-          return <div key={i} style={{border:"1px solid #e8e6e1",borderRadius:7,padding:"8px 10px",background:isLive?"#f0fdf4":"#FFFDF7",opacity:isLive?0.5:1}}>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:isLive?0:5}}>
-              <button onClick={()=>goOne(i)} disabled={isLive} style={{background:isLive?"#86efac":"#2B8A3E",color:isLive?"#166534":"#fff",border:"none",borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:700,cursor:isLive?"default":"pointer",display:"flex",alignItems:"center",gap:2,flexShrink:0}}>{isLive?<><Ic name="check" size={9} color="#166534"/> Added</>:<><Ic name="zap" size={9} color="#fff"/> Go Live</>}</button>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><div style={{fontSize:12,fontWeight:700,fontFamily:FS}}>📋 {liveIds.size} added · {skippedIds.size} skipped · {rem} remaining{dupeCount>0&&<span style={{color:"#E8590C",marginLeft:6}}>⚠️ {dupeCount} possible dupe{dupeCount>1?"s":""}</span>}</div><button onClick={()=>setStaged(null)} style={{background:"#f5f3ee",color:"#2c2a25",border:"1px solid #e2e0db",borderRadius:5,padding:"3px 8px",fontSize:10,fontWeight:600,cursor:"pointer"}}>← Back</button></div>
+        <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:14}}>{staged.map((t,i)=>{const isLive=liveIds.has(i);const isSkipped=skippedIds.has(i);const isDone=isLive||isSkipped;const[et,setEt]=useState(false);const[tv,setTv]=useState(t.text);const commit=()=>{upS(i,{text:tv});setEt(false);};
+          return <div key={i} style={{border:`1px solid ${t._dupe&&!isDone?"#F59F00":"#e8e6e1"}`,borderRadius:7,padding:"8px 10px",background:isLive?"#f0fdf4":isSkipped?"#f8f8f6":t._dupe?"#FFFBF0":"#FFFDF7",opacity:isDone?0.45:1}}>
+            {t._dupe&&!isDone&&<div style={{fontSize:9,fontWeight:700,color:"#E8590C",marginBottom:4,fontFamily:FS}}>⚠️ POSSIBLE DUPLICATE — already in your task list</div>}
+            <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:isDone?0:5}}>
+              <button onClick={()=>goOne(i)} disabled={isDone} style={{background:isLive?"#86efac":"#2B8A3E",color:isLive?"#166534":"#fff",border:"none",borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:700,cursor:isDone?"default":"pointer",display:"flex",alignItems:"center",gap:2,flexShrink:0}}>{isLive?<><Ic name="check" size={9} color="#166534"/> Added</>:<><Ic name="zap" size={9} color="#fff"/> Go Live</>}</button>
+              {t._dupe&&!isDone&&<button onClick={()=>skipOne(i)} style={{background:"#F59F00",color:"#fff",border:"none",borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:2,flexShrink:0}}>Skip Dupe</button>}
+              {isSkipped&&<span style={{fontSize:10,color:"#999",fontFamily:FS}}>Skipped</span>}
               {et?<input value={tv} onChange={e=>setTv(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==="Enter")commit();}} autoFocus style={{flex:1,fontSize:12,fontFamily:FF,border:"1px solid #d4d0c8",borderRadius:4,padding:"2px 5px",outline:"none"}}/>
-              :<div onClick={()=>{if(!isLive)setEt(true);}} style={{flex:1,fontSize:12,fontFamily:FF,fontWeight:500,color:isLive?"#999":"#2c2a25",cursor:isLive?"default":"text",display:"flex",alignItems:"center",gap:4,textDecoration:isLive?"line-through":"none"}}>{t.text}{!isLive&&<Ic name="edit" size={10} color="#b5b0a8"/>}</div>}
+              :<div onClick={()=>{if(!isDone)setEt(true);}} style={{flex:1,fontSize:12,fontFamily:FF,fontWeight:500,color:isDone?"#999":"#2c2a25",cursor:isDone?"default":"text",display:"flex",alignItems:"center",gap:4,textDecoration:isDone?"line-through":"none"}}>{t.text}{!isDone&&<Ic name="edit" size={10} color="#b5b0a8"/>}</div>}
               <div onClick={()=>rmS(i)} style={{cursor:"pointer",opacity:0.3}}><Ic name="trash" size={12} color="#E8590C"/></div>
             </div>
-            {!isLive&&<div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+            {!isDone&&<div style={{display:"flex",flexWrap:"wrap",gap:3}}>
               <Dd value={t.category} options={categories} onChange={v=>upS(i,{category:v})} placeholder="Category"/>
               <Dd value={t.realm} options={realms} onChange={v=>upS(i,{realm:v})} placeholder="Realm"/>
               <Dd value={t.project} options={openProjects.map(p=>p.name)} onChange={v=>{const proj=openProjects.find(p=>p.name===v);upS(i,{project:v,lever:proj?.lever||t.lever});}} placeholder="Project"/>
@@ -174,8 +186,10 @@ function ImportModal({mode,onImportOne,onClose,categories,projects,levers,allOwn
               <label style={{display:"flex",alignItems:"center",gap:3,fontSize:10,color:"#666",cursor:"pointer"}}><input type="checkbox" checked={t.focusToday} onChange={e=>upS(i,{focusToday:e.target.checked})}/> Today</label>
             </div>}
           </div>;})}</div>
-        {allLive?<button onClick={onClose} style={{width:"100%",background:"#2c2a25",color:"#fff",border:"none",borderRadius:8,padding:"9px",fontSize:12,fontWeight:700,cursor:"pointer"}}>✅ Done — Close</button>
-        :rem>0&&<button onClick={goRest} style={{width:"100%",background:"#2B8A3E",color:"#fff",border:"none",borderRadius:8,padding:"9px",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Ic name="rocket" size={14} color="#fff"/>Go Live — {rem} Remaining</button>}
+        {allDone?<button onClick={onClose} style={{width:"100%",background:"#2c2a25",color:"#fff",border:"none",borderRadius:8,padding:"9px",fontSize:12,fontWeight:700,cursor:"pointer"}}>✅ Done — Close</button>
+        :rem>0?<button onClick={goRest} style={{width:"100%",background:"#2B8A3E",color:"#fff",border:"none",borderRadius:8,padding:"9px",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Ic name="rocket" size={14} color="#fff"/>Go Live — {rem} New{dupeRem>0?` (${dupeRem} dupe${dupeRem>1?"s":""} need review)`:""}</button>
+        :dupeRem>0?<div style={{textAlign:"center",fontSize:11,color:"#999",padding:"8px 0"}}>Only duplicates remaining — Go Live or Skip each one above, or <button onClick={onClose} style={{background:"transparent",border:"none",color:"#1971C2",fontWeight:600,cursor:"pointer",fontSize:11,textDecoration:"underline"}}>close</button></div>
+        :null}
       </div>:<>
         {mode==="text"?<><textarea value={input} onChange={e=>setInput(e.target.value)} rows={5} placeholder="Type tasks..." style={{width:"100%",border:"1px solid #e2e0db",borderRadius:7,padding:8,fontSize:12,fontFamily:FF,outline:"none",resize:"vertical"}}/><button onClick={gen} disabled={loading||!input.trim()} style={{marginTop:5,background:loading?"#aaa":"#2c2a25",color:"#fff",border:"none",borderRadius:7,padding:"7px",fontSize:12,fontWeight:700,cursor:loading?"default":"pointer",width:"100%"}}>{loading?"⏳...":"⚡ Generate"}</button></>
         :<textarea value={input} onChange={e=>setInput(e.target.value)} rows={6} placeholder="Paste JSON..." style={{width:"100%",border:"1px solid #e2e0db",borderRadius:7,padding:8,fontSize:11,fontFamily:"monospace",outline:"none",resize:"vertical"}}/>}
@@ -193,6 +207,14 @@ function Settings({leversIn,projectsIn,categoriesIn,realmsIn,ownersIn,onSave,onC
   const handleClose=()=>{onSave({levers,projects,categories,realms,owners});onClose();};
   const updateProjectLever=(i,v)=>{const u=[...projects];u[i]={...u[i],lever:v};setProjects(u);};
   const[di,setDi]=useState(null);const[oi,setOi]=useState(null);
+  const[exportSql,setExportSql]=useState("");
+  const generateExport=async()=>{
+    const keys=["gd-tasks","gd-projects","gd-levers","gd-categories","gd-realms","gd-owners"];
+    const lines=[];
+    for(const key of keys){try{const r=await window.storage.get(key);if(r&&r.value){const escaped=r.value.replace(/'/g,"''");lines.push(`  ('${key}', '${escaped}')`);};}catch{}}
+    if(lines.length===0){setExportSql("-- No data found");return;}
+    setExportSql("INSERT INTO kv_store (key, value) VALUES\n"+lines.join(",\n")+"\nON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();");
+  };
   const dropP=to=>{if(di===null||di===to)return;const a=[...projects];const[item]=a.splice(di,1);a.splice(to,0,item);setProjects(a);setDi(null);setOi(null);};
 
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",justifyContent:"center",alignItems:"flex-start",paddingTop:20,overflowY:"auto"}}>
@@ -215,6 +237,10 @@ function Settings({leversIn,projectsIn,categoriesIn,realmsIn,ownersIn,onSave,onC
       <SettingsSection title="Categories"><div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:5}}>{categories.map((c,i)=><Tag key={i} label={c} color="#1971C2" onRemove={()=>setCategories(categories.filter((_,j)=>j!==i))}/>)}</div><InlineAdder placeholder="New category..." onAdd={v=>setCategories([...categories,v])}/></SettingsSection>
       <SettingsSection title="Realms (Work / Home)"><div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:5}}>{realms.map((r,i)=><Tag key={i} label={r} color="#0B7285" onRemove={()=>setRealms(realms.filter((_,j)=>j!==i))}/>)}</div><InlineAdder placeholder="New realm..." onAdd={v=>setRealms([...realms,v])}/></SettingsSection>
       <SettingsSection title="People"><div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:5}}>{alphaSort(owners).map((o,i)=><Tag key={o} label={o} color={pColor(o)} onRemove={()=>setOwners(owners.filter(x=>x!==o))}/>)}</div><InlineAdder placeholder="Add person..." onAdd={v=>setOwners([...owners,v])}/></SettingsSection>
+      <SettingsSection title="Export to Supabase / Vercel">
+        <button onClick={generateExport} style={{background:"#1971C2",color:"#fff",border:"none",borderRadius:6,padding:"7px 14px",fontSize:11,fontWeight:700,cursor:"pointer",width:"100%",marginBottom:6}}>📤 Generate SQL for Supabase</button>
+        {exportSql&&<><button onClick={()=>navigator.clipboard.writeText(exportSql)} style={{background:"#2B8A3E",color:"#fff",border:"none",borderRadius:6,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:"pointer",width:"100%",marginBottom:6}}>📋 Copy SQL to Clipboard</button><textarea value={exportSql} readOnly rows={6} style={{width:"100%",border:"1px solid #e2e0db",borderRadius:6,padding:8,fontSize:10,fontFamily:"monospace",outline:"none",resize:"vertical",background:"#faf9f6"}}/></>}
+      </SettingsSection>
       <button onClick={handleClose} style={{width:"100%",background:"#2c2a25",color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:12,fontWeight:700,cursor:"pointer",marginTop:4}}>Save & Close</button>
     </div>
   </div>;
@@ -351,7 +377,7 @@ export default function GoDoApp(){
       {view==="owner"&&renderPeopleView()}
     </div>
     {showSettings&&<Settings leversIn={levers} projectsIn={projects} categoriesIn={categories} realmsIn={realms} ownersIn={owners} onSave={handleSaveSettings} onClose={()=>setShowSettings(false)}/>}
-    {importMode&&<ImportModal mode={importMode} onImportOne={importOneTask} onClose={()=>setImportMode(null)} categories={categories} projects={projects} levers={levers} allOwners={allOwners} realms={realms}/>}
+    {importMode&&<ImportModal mode={importMode} onImportOne={importOneTask} onClose={()=>setImportMode(null)} categories={categories} projects={projects} levers={levers} allOwners={allOwners} realms={realms} existingTasks={tasks}/>}
     {undoTask&&<UndoToast task={undoTask} onUndo={undoDelete} onDismiss={()=>setUndoTask(null)}/>}
     <style>{`*{box-sizing:border-box;margin:0;}button:hover{opacity:0.9;}input::placeholder,textarea::placeholder{color:#b5b0a8;}::-webkit-scrollbar{height:3px;}::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px;}`}</style>
   </div>;
