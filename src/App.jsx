@@ -19,8 +19,7 @@ const OLD_SK = { tasks:"nb2-tasks", projects:"nb2-projects", levers:"nb2-levers"
 const FF = "'Crimson Pro',Georgia,serif";
 const FS = "'Work Sans',system-ui,sans-serif";
 
-async function ld(k,fb){try{const r=await window.storage.get(k);return r?JSON.parse(r.value):fb;}catch{return fb;}}
-async function sv(k,d){try{await window.storage.set(k,JSON.stringify(d));}catch(e){console.error(e);}}
+import { load as ld, save as sv } from "./storage.js"
 async function ldM(nk,ok,fb){const n=await ld(nk,null);if(n!==null)return n;if(ok){const o=await ld(ok,null);if(o!==null){await sv(nk,o);return o;}}return fb;}
 const uid=()=>`${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
 const pColor=name=>{let h=0;for(let i=0;i<name.length;i++)h=name.charCodeAt(i)+((h<<5)-h);return PERSON_COLORS[Math.abs(h)%PERSON_COLORS.length];};
@@ -211,7 +210,7 @@ function Settings({leversIn,projectsIn,categoriesIn,realmsIn,ownersIn,onSave,onC
   const generateExport=async()=>{
     const keys=["gd-tasks","gd-projects","gd-levers","gd-categories","gd-realms","gd-owners"];
     const lines=[];
-    for(const key of keys){try{const r=await window.storage.get(key);if(r&&r.value){const escaped=r.value.replace(/'/g,"''");lines.push(`  ('${key}', '${escaped}')`);};}catch{}}
+    for(const key of keys){try{const r=await ld(key, null);if(r&&r.value){const escaped=r.value.replace(/'/g,"''");lines.push(`  ('${key}', '${escaped}')`);};}catch{}}
     if(lines.length===0){setExportSql("-- No data found");return;}
     setExportSql("INSERT INTO kv_store (key, value) VALUES\n"+lines.join(",\n")+"\nON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();");
   };
