@@ -4,6 +4,7 @@ const DEFAULT_CATEGORIES = ["Go Do", "Follow Up", "Call List", "Deadline", "Idea
 const DEFAULT_REALMS = ["Work", "Home"];
 const DEFAULT_STATUSES = ["Open", "In Progress", "Done", "Cancelled"];
 const ACTIVE_STATUSES = ["Open", "In Progress"];
+const RECURRENCE = ["none","daily","weekdays","weekly","biweekly","monthly"];
 const DEFAULT_LEVERS = [
   { name: "Integrated Offering", color: "#E8590C" },
   { name: "Fixed Fee First", color: "#1971C2" },
@@ -27,8 +28,22 @@ const alphaSort=arr=>[...arr].sort((a,b)=>a.localeCompare(b));
 const alphaSortProjects=arr=>[...arr].sort((a,b)=>a.name.localeCompare(b.name));
 
 function Ic({name,size=16,color="currentColor",fill="none"}){
-  const p={check:<polyline points="20 6 9 17 4 12"/>,plus:<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,trash:<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></>,star:<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>,filter:<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>,list:<><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></>,user:<><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></>,briefcase:<><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></>,settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>,x:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,sun:<><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>,layers:<><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,clock:<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,chevDown:<polyline points="6 9 12 15 18 9"/>,chevRight:<polyline points="9 18 15 12 9 6"/>,grip:<><circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/></>,phone:<><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></>,archive:<><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></>,rocket:<><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></>,edit:<><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></>,type:<><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></>,code:<><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></>,zap:<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,minimize:<><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></>,maximize:<><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></>,home:<><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,undo:<><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></>};
+  const p={check:<polyline points="20 6 9 17 4 12"/>,plus:<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,trash:<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></>,star:<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>,filter:<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>,list:<><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></>,user:<><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></>,briefcase:<><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></>,settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>,x:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,sun:<><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>,layers:<><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,clock:<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,chevDown:<polyline points="6 9 12 15 18 9"/>,chevRight:<polyline points="9 18 15 12 9 6"/>,grip:<><circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/></>,phone:<><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></>,archive:<><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></>,rocket:<><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></>,edit:<><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></>,type:<><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></>,code:<><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></>,zap:<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,minimize:<><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></>,maximize:<><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></>,home:<><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,undo:<><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></>,repeat:<><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></>};
   return <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{p[name]}</svg>;
+}
+
+// ─── Next Due Date Calculator ───
+function calcNextDue(currentDate, recurrence) {
+  const d = currentDate ? new Date(currentDate + "T12:00:00") : new Date();
+  switch(recurrence) {
+    case "daily": d.setDate(d.getDate()+1); break;
+    case "weekdays": d.setDate(d.getDate()+1); while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1); break;
+    case "weekly": d.setDate(d.getDate()+7); break;
+    case "biweekly": d.setDate(d.getDate()+14); break;
+    case "monthly": d.setMonth(d.getMonth()+1); break;
+    default: return "";
+  }
+  return d.toISOString().split("T")[0];
 }
 
 function Tag({label,color="#6b7280",onRemove,small}){return <span style={{display:"inline-flex",alignItems:"center",gap:2,background:color+"18",color,fontSize:small?9:10,fontWeight:600,padding:small?"0px 5px":"1px 7px",borderRadius:99,whiteSpace:"nowrap",fontFamily:FS}}>{label}{onRemove&&<span onClick={e=>{e.stopPropagation();onRemove();}} style={{cursor:"pointer",marginLeft:1,opacity:0.6}}>×</span>}</span>;}
@@ -104,6 +119,7 @@ function TaskRow({task,projects,levers,categories,realms,allOwners,onUpdate,onDe
         {task.owner&&!isFollowUp&&!isCallList&&task.owner!=="Me"&&<Tag label={task.owner} color={pColor(task.owner)} small/>}
         {task.dueDate&&<Tag label={task.dueDate} color="#9C36B5" small/>}
         {isCallList&&<Ic name="phone" size={compact?9:10} color="#2B8A3E"/>}
+        {task.recurrence&&task.recurrence!=="none"&&<Tag label={task.recurrence} color="#0B7285" small/>}
         {task.notes&&<span style={{fontSize:8,color:"#b5b0a8"}}>📝</span>}
       </div>
       <div onClick={()=>onUpdate({focusToday:!task.focusToday})} style={{cursor:"pointer",flexShrink:0}}><Ic name="star" size={compact?11:13} color={task.focusToday?"#F59F00":"#d4d0c8"} fill={task.focusToday?"#F59F00":"none"}/></div>
@@ -119,6 +135,7 @@ function TaskRow({task,projects,levers,categories,realms,allOwners,onUpdate,onDe
         {!isCallList&&<Dd value={task.lever} options={levers.map(l=>l.name)} onChange={v=>onUpdate({lever:v})} placeholder="Lever"/>}
         <PersonPicker value={task.owner} options={sortedOwners} onChange={v=>onUpdate({owner:v})} onAddNew={onAddPerson} placeholder="Person"/>
         <Dd value={task.status} options={DEFAULT_STATUSES} onChange={v=>onUpdate({status:v})}/>
+        <Dd value={task.recurrence||"none"} options={RECURRENCE} onChange={v=>onUpdate({recurrence:v})} placeholder="Repeat"/>
         <input type="date" value={task.dueDate||""} onChange={e=>onUpdate({dueDate:e.target.value})} style={{border:"1px solid #e2e0db",borderRadius:5,padding:"2px 4px",fontSize:10,fontFamily:FS,background:"#fff",color:"#2c2a25",cursor:"pointer"}}/>
       </div>
       <textarea value={editNotes} onChange={e=>setEditNotes(e.target.value)} onBlur={()=>onUpdate({notes:editNotes})} placeholder="Notes..." rows={2} style={{width:"100%",border:"1px solid #e2e0db",borderRadius:4,padding:"3px 5px",fontSize:10,fontFamily:FS,outline:"none",resize:"vertical",background:"#faf9f6",color:"#555"}}/>
@@ -138,17 +155,13 @@ function UndoToast({task,onUndo,onDismiss}){
 
 // ─── Import Modal ───
 function ImportModal({mode,onImportOne,onClose,categories,projects,levers,allOwners,realms,existingTasks}){
-  const[input,setInput]=useState("");const[jsonOut,setJsonOut]=useState("");const[loading,setLoading]=useState(false);const[error,setError]=useState(null);
+  const[input,setInput]=useState("");const[error,setError]=useState(null);
   const[staged,setStaged]=useState(null);const[liveIds,setLiveIds]=useState(new Set());const[skippedIds,setSkippedIds]=useState(new Set());
   const openProjects=alphaSortProjects(projects.filter(p=>!p.closed));
-  // Dedup: normalize text for fuzzy matching
   const normalize=s=>(s||"").toLowerCase().replace(/[^a-z0-9]/g,"");
   const existingNorms=(existingTasks||[]).map(t=>normalize(t.text));
   const isDupe=text=>{const n=normalize(text);if(!n)return false;return existingNorms.some(e=>e===n||(n.length>8&&e.includes(n))||(e.length>8&&n.includes(e)));};
-  const callAI=async m=>{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:m})});const d=await r.json();return d.content?.map(c=>c.type==="text"?c.text:"").join("").trim();};
-  const sp=`Extract tasks. Return ONLY valid JSON array.\nEach: {"text":"...","category":"Go Do|Follow Up|Call List|Deadline|Idea","owner":"","dueDate":"","focusToday":false,"realm":"Work"}\nProjects: ${openProjects.map(p=>p.name).join(", ")||"none"}`;
-  const gen=async()=>{if(!input.trim())return;setLoading(true);setError(null);try{const t=await callAI([{role:"user",content:[{type:"text",text:sp+"\n\nInput:\n"+input}]}]);setJsonOut(t.replace(/```json|```/g,"").trim());}catch{setError("Failed.");}setLoading(false);};
-  const toStage=()=>{try{const src=mode==="json"?input:jsonOut;const arr=JSON.parse(src);if(!Array.isArray(arr))throw 0;setStaged(arr.map((t,i)=>{const proj=openProjects.find(p=>p.name===t.project);return{_i:i,text:t.text||"",category:t.category||"Go Do",project:t.project||"",lever:proj?.lever||"",owner:t.owner||"",status:t.status||"Open",dueDate:t.dueDate||"",focusToday:t.focusToday||false,longTerm:false,notes:"",realm:t.realm||"Work",_dupe:isDupe(t.text||"")};}));setLiveIds(new Set());setSkippedIds(new Set());setError(null);}catch{setError("Invalid JSON.");}};
+  const toStage=()=>{try{const arr=JSON.parse(input);if(!Array.isArray(arr))throw 0;setStaged(arr.map((t,i)=>{const proj=openProjects.find(p=>p.name===t.project);return{_i:i,text:t.text||"",category:t.category||"Go Do",project:t.project||"",lever:proj?.lever||"",owner:t.owner||"",status:t.status||"Open",dueDate:t.dueDate||"",focusToday:t.focusToday||false,longTerm:false,notes:"",realm:t.realm||"Work",recurrence:t.recurrence||"none",_dupe:isDupe(t.text||"")};}));setLiveIds(new Set());setSkippedIds(new Set());setError(null);}catch{setError("Invalid JSON.");}};
   const upS=(i,u)=>setStaged(p=>p.map((t,j)=>j===i?{...t,...u}:t));const rmS=i=>setStaged(p=>p.filter((_,j)=>j!==i));
   const skipOne=i=>setSkippedIds(p=>new Set(p).add(i));
   const goOne=i=>{if(liveIds.has(i)||skippedIds.has(i))return;const{_i,_dupe,...t}=staged[i];onImportOne(t);setLiveIds(p=>new Set(p).add(i));};
@@ -161,7 +174,7 @@ function ImportModal({mode,onImportOne,onClose,categories,projects,levers,allOwn
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",justifyContent:"center",alignItems:"flex-start",paddingTop:20,overflowY:"auto"}}>
     <div style={{background:"#fff",borderRadius:14,padding:22,width:"100%",maxWidth:600,margin:"0 16px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.15)",maxHeight:"90vh",overflowY:"auto"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <h2 style={{fontFamily:FF,fontSize:17,margin:0,display:"flex",alignItems:"center",gap:6}}><Ic name={mode==="text"?"type":"code"} size={16} color="#2c2a25"/>{mode==="text"?"Import Text":"Import JSON"}</h2>
+        <h2 style={{fontFamily:FF,fontSize:17,margin:0,display:"flex",alignItems:"center",gap:6}}><Ic name="code" size={16} color="#2c2a25"/>Import JSON</h2>
         <button onClick={onClose} style={{background:"#f5f3ee",border:"1px solid #e2e0db",borderRadius:6,padding:"3px 10px",fontSize:11,fontWeight:600,cursor:"pointer",color:"#2c2a25",fontFamily:FS}}>✕ Close</button>
       </div>
       {staged?<div>
@@ -190,11 +203,9 @@ function ImportModal({mode,onImportOne,onClose,categories,projects,levers,allOwn
         :dupeRem>0?<div style={{textAlign:"center",fontSize:11,color:"#999",padding:"8px 0"}}>Only duplicates remaining — Go Live or Skip each one above, or <button onClick={onClose} style={{background:"transparent",border:"none",color:"#1971C2",fontWeight:600,cursor:"pointer",fontSize:11,textDecoration:"underline"}}>close</button></div>
         :null}
       </div>:<>
-        {mode==="text"?<><textarea value={input} onChange={e=>setInput(e.target.value)} rows={5} placeholder="Type tasks..." style={{width:"100%",border:"1px solid #e2e0db",borderRadius:7,padding:8,fontSize:12,fontFamily:FF,outline:"none",resize:"vertical"}}/><button onClick={gen} disabled={loading||!input.trim()} style={{marginTop:5,background:loading?"#aaa":"#2c2a25",color:"#fff",border:"none",borderRadius:7,padding:"7px",fontSize:12,fontWeight:700,cursor:loading?"default":"pointer",width:"100%"}}>{loading?"⏳...":"⚡ Generate"}</button></>
-        :<textarea value={input} onChange={e=>setInput(e.target.value)} rows={6} placeholder="Paste JSON..." style={{width:"100%",border:"1px solid #e2e0db",borderRadius:7,padding:8,fontSize:11,fontFamily:"monospace",outline:"none",resize:"vertical"}}/>}
+        <textarea value={input} onChange={e=>setInput(e.target.value)} rows={8} placeholder={'Paste JSON array, e.g.:\n[\n  {"text":"My task","category":"Go Do"},\n  {"text":"Call Jim","category":"Call List","owner":"Jim"}\n]'} style={{width:"100%",border:"1px solid #e2e0db",borderRadius:7,padding:8,fontSize:11,fontFamily:"monospace",outline:"none",resize:"vertical"}}/>
         {error&&<div style={{marginTop:5,padding:"5px 8px",background:"#FFF4E6",border:"1px solid #F59F00",borderRadius:5,color:"#E8590C",fontSize:11}}>{error}</div>}
-        {jsonOut&&mode==="text"&&<div style={{marginTop:6}}><textarea value={jsonOut} onChange={e=>setJsonOut(e.target.value)} rows={5} style={{width:"100%",border:"1px solid #e2e0db",borderRadius:7,padding:8,fontSize:11,fontFamily:"monospace",outline:"none",resize:"vertical",background:"#FFFDF7"}}/></div>}
-        {(jsonOut||(mode==="json"&&input))&&<button onClick={toStage} style={{marginTop:6,background:"#1971C2",color:"#fff",border:"none",borderRadius:7,padding:"7px",fontSize:12,fontWeight:700,cursor:"pointer",width:"100%"}}>📋 Review Before Import</button>}
+        {input.trim()&&<button onClick={toStage} style={{marginTop:6,background:"#1971C2",color:"#fff",border:"none",borderRadius:7,padding:"7px",fontSize:12,fontWeight:700,cursor:"pointer",width:"100%"}}>📋 Review Before Import</button>}
       </>}
     </div>
   </div>;
@@ -210,7 +221,7 @@ function Settings({leversIn,projectsIn,categoriesIn,realmsIn,ownersIn,onSave,onC
   const generateExport=async()=>{
     const keys=["gd-tasks","gd-projects","gd-levers","gd-categories","gd-realms","gd-owners"];
     const lines=[];
-    for(const key of keys){try{const r=await ld(key, null);if(r&&r.value){const escaped=r.value.replace(/'/g,"''");lines.push(`  ('${key}', '${escaped}')`);};}catch{}}
+    for(const key of keys){try{const val=await ld(key,null);if(val!==null){const raw=JSON.stringify(val);const escaped=raw.replace(/'/g,"''");lines.push(`  ('${key}', '${escaped}')`);};}catch{}}
     if(lines.length===0){setExportSql("-- No data found");return;}
     setExportSql("INSERT INTO kv_store (key, value) VALUES\n"+lines.join(",\n")+"\nON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();");
   };
@@ -256,11 +267,22 @@ export default function GoDoApp(){
   useEffect(()=>{if(loaded)sv(SK.tasks,tasks);},[tasks,loaded]);useEffect(()=>{if(loaded)sv(SK.projects,projects);},[projects,loaded]);useEffect(()=>{if(loaded)sv(SK.levers,levers);},[levers,loaded]);useEffect(()=>{if(loaded)sv(SK.categories,categories);},[categories,loaded]);useEffect(()=>{if(loaded)sv(SK.realms,realms);},[realms,loaded]);useEffect(()=>{if(loaded)sv(SK.owners,owners);},[owners,loaded]);
 
   const addPerson=name=>{if(!owners.includes(name))setOwners(prev=>[...prev,name]);};
-  const addTaskObj=obj=>setTasks(prev=>[{id:uid(),text:obj.text,category:obj.category||"Go Do",project:obj.project||"",lever:obj.lever||"",owner:obj.owner||"",status:"Open",dueDate:"",focusToday:obj.focusToday||false,longTerm:false,notes:"",realm:obj.realm||"Work",createdAt:new Date().toISOString()},...prev]);
-  const updateTask=(id,u)=>setTasks(prev=>prev.map(t=>t.id===id?{...t,...u}:t));
+  const addTaskObj=obj=>setTasks(prev=>[{id:uid(),text:obj.text,category:obj.category||"Go Do",project:obj.project||"",lever:obj.lever||"",owner:obj.owner||"",status:"Open",dueDate:obj.dueDate||"",focusToday:obj.focusToday||false,longTerm:false,notes:"",realm:obj.realm||"Work",recurrence:obj.recurrence||"none",createdAt:new Date().toISOString()},...prev]);
+  const updateTask=(id,u)=>{
+    setTasks(prev=>{
+      const task=prev.find(t=>t.id===id);
+      // If marking a recurring task Done, create next instance
+      if(u.status==="Done"&&task&&task.recurrence&&task.recurrence!=="none"){
+        const nextDate=calcNextDue(task.dueDate||new Date().toISOString().split("T")[0],task.recurrence);
+        const newTask={id:uid(),text:task.text,category:task.category,project:task.project,lever:task.lever,owner:task.owner,status:"Open",dueDate:nextDate,focusToday:false,longTerm:task.longTerm,notes:task.notes,realm:task.realm,recurrence:task.recurrence,createdAt:new Date().toISOString()};
+        return [newTask,...prev.map(t=>t.id===id?{...t,...u}:t)];
+      }
+      return prev.map(t=>t.id===id?{...t,...u}:t);
+    });
+  };
   const deleteTask=id=>{const t=tasks.find(x=>x.id===id);if(t)setUndoTask(t);setTasks(prev=>prev.filter(x=>x.id!==id));};
   const undoDelete=()=>{if(undoTask){setTasks(prev=>[undoTask,...prev]);setUndoTask(null);}};
-  const importOneTask=t=>{const proj=projects.find(p=>p.name===t.project);setTasks(prev=>[{id:uid(),text:t.text||"",category:t.category||"Go Do",project:t.project||"",lever:proj?.lever||t.lever||"",owner:t.owner||"",status:t.status||"Open",dueDate:t.dueDate||"",focusToday:t.focusToday||false,longTerm:false,notes:t.notes||"",realm:t.realm||"Work",createdAt:new Date().toISOString()},...prev]);};
+  const importOneTask=t=>{const proj=projects.find(p=>p.name===t.project);setTasks(prev=>[{id:uid(),text:t.text||"",category:t.category||"Go Do",project:t.project||"",lever:proj?.lever||t.lever||"",owner:t.owner||"",status:t.status||"Open",dueDate:t.dueDate||"",focusToday:t.focusToday||false,longTerm:false,notes:t.notes||"",realm:t.realm||"Work",recurrence:t.recurrence||"none",createdAt:new Date().toISOString()},...prev]);};
 
   const handleDrop=dropId=>{if(!dragId||dragId===dropId)return;setTasks(prev=>{const arr=[...prev];const f=arr.findIndex(t=>t.id===dragId);const to=arr.findIndex(t=>t.id===dropId);const[item]=arr.splice(f,1);arr.splice(to,0,item);return arr;});setDragId(null);setDragOverId(null);};
   const handleProjDrop=toIdx=>{if(projDragIdx===null||projDragIdx===toIdx)return;setProjects(prev=>{const a=[...prev];const[item]=a.splice(projDragIdx,1);a.splice(toIdx,0,item);return a;});setProjDragIdx(null);setProjOverIdx(null);};
@@ -351,8 +373,7 @@ export default function GoDoApp(){
         </div>
         <div style={{display:"flex",gap:3,alignItems:"center"}}>
           <button onClick={()=>setCompact(!compact)} style={hb}><Ic name={compact?"maximize":"minimize"} size={12} color="#E8D5B7"/></button>
-          <button onClick={()=>setImportMode("text")} style={hb}><Ic name="type" size={12} color="#E8D5B7"/> Text</button>
-          <button onClick={()=>setImportMode("json")} style={hb}><Ic name="code" size={12} color="#E8D5B7"/> JSON</button>
+          <button onClick={()=>setImportMode("json")} style={hb}><Ic name="code" size={12} color="#E8D5B7"/> Import</button>
           <button onClick={()=>setShowSettings(true)} style={{...hb,padding:"4px 5px"}}><Ic name="settings" size={14} color="#E8D5B7"/></button>
         </div>
       </div>
