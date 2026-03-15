@@ -355,10 +355,13 @@ export default function GoDoApp(){
     </>;
   };
 
+  const[leverWorkOnly,setLeverWorkOnly]=useState(true);
   const renderLeverView=()=>{
     if(levers.length===0)return <div style={{padding:"20px 0",textAlign:"center",color:"#b5b0a8",fontSize:11}}>No levers.</div>;
-    const unassigned=filtered.filter(t=>!t.lever);const uoc=unassigned.filter(t=>!["Done","Cancelled"].includes(t.status)).length;
-    return <>{levers.map(lever=>{const lt=filtered.filter(t=>t.lever===lever.name);const oc=lt.filter(t=>!["Done","Cancelled"].includes(t.status)).length;
+    const lf=leverWorkOnly?filtered.filter(t=>(t.realm||"Work")==="Work"):filtered;
+    const unassigned=lf.filter(t=>!t.lever);const uoc=unassigned.filter(t=>!["Done","Cancelled"].includes(t.status)).length;
+    return <><div style={{display:"flex",justifyContent:"flex-end",marginBottom:4}}><button onClick={()=>setLeverWorkOnly(!leverWorkOnly)} style={{background:leverWorkOnly?"#2c2a25":"#f5f3ee",color:leverWorkOnly?"#fff":"#2c2a25",border:"1px solid #e2e0db",borderRadius:5,padding:"2px 8px",fontSize:9,fontWeight:600,cursor:"pointer",fontFamily:FS}}>{leverWorkOnly?"Work only":"All realms"}</button></div>
+    {levers.map(lever=>{const lt=lf.filter(t=>t.lever===lever.name);const oc=lt.filter(t=>!["Done","Cancelled"].includes(t.status)).length;
       return <div key={lever.name}><SH icon="layers" label={lever.name} count={oc} color={lever.color} empty={lt.length===0}/>{lt.length>0?renderTasks(lt):<div style={{padding:"2px 0",color:"#b5b0a8",fontSize:10,fontStyle:"italic"}}>No tasks</div>}</div>;})}
     {unassigned.length>0&&<><SH icon="layers" label="No Lever" count={uoc} color="#999"/>{renderTasks(unassigned)}</>}
     </>;
