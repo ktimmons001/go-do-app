@@ -153,6 +153,31 @@ function UndoToast({task,onUndo,onDismiss}){
   </div>;
 }
 
+// ─── Staged Task Row (proper component to avoid hooks-in-map) ───
+function StagedRow({task,index,isLive,isSkipped,categories,projects,levers,allOwners,realms,onUpdate,onRemove,onGoLive,onSkip}){
+  const[et,setEt]=useState(false);const[tv,setTv]=useState(task.text);
+  const isDone=isLive||isSkipped;const openProjects=projects;
+  const commit=()=>{onUpdate({text:tv});setEt(false);};
+  return <div style={{border:`1px solid ${task._dupe&&!isDone?"#F59F00":"#e8e6e1"}`,borderRadius:7,padding:"8px 10px",background:isLive?"#f0fdf4":isSkipped?"#f8f8f6":task._dupe?"#FFFBF0":"#FFFDF7",opacity:isDone?0.45:1}}>
+    {task._dupe&&!isDone&&<div style={{fontSize:9,fontWeight:700,color:"#E8590C",marginBottom:4,fontFamily:FS}}>⚠️ POSSIBLE DUPLICATE — already in your task list</div>}
+    <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:isDone?0:5}}>
+      <button onClick={onGoLive} disabled={isDone} style={{background:isLive?"#86efac":"#2B8A3E",color:isLive?"#166534":"#fff",border:"none",borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:700,cursor:isDone?"default":"pointer",display:"flex",alignItems:"center",gap:2,flexShrink:0}}>{isLive?<><Ic name="check" size={9} color="#166534"/> Added</>:<><Ic name="zap" size={9} color="#fff"/> Go Live</>}</button>
+      {task._dupe&&!isDone&&<button onClick={onSkip} style={{background:"#F59F00",color:"#fff",border:"none",borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:2,flexShrink:0}}>Skip Dupe</button>}
+      {isSkipped&&<span style={{fontSize:10,color:"#999",fontFamily:FS}}>Skipped</span>}
+      {et?<input value={tv} onChange={e=>setTv(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==="Enter")commit();}} autoFocus style={{flex:1,fontSize:12,fontFamily:FF,border:"1px solid #d4d0c8",borderRadius:4,padding:"2px 5px",outline:"none"}}/>
+      :<div onClick={()=>{if(!isDone)setEt(true);}} style={{flex:1,fontSize:12,fontFamily:FF,fontWeight:500,color:isDone?"#999":"#2c2a25",cursor:isDone?"default":"text",display:"flex",alignItems:"center",gap:4,textDecoration:isDone?"line-through":"none"}}>{task.text}{!isDone&&<Ic name="edit" size={10} color="#b5b0a8"/>}</div>}
+      <div onClick={onRemove} style={{cursor:"pointer",opacity:0.3}}><Ic name="trash" size={12} color="#E8590C"/></div>
+    </div>
+    {!isDone&&<div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+      <Dd value={task.category} options={categories} onChange={v=>onUpdate({category:v})} placeholder="Category"/>
+      <Dd value={task.realm} options={realms} onChange={v=>onUpdate({realm:v})} placeholder="Realm"/>
+      <Dd value={task.project} options={openProjects.map(p=>p.name)} onChange={v=>{const proj=openProjects.find(p=>p.name===v);onUpdate({project:v,lever:proj?.lever||task.lever});}} placeholder="Project"/>
+      <Dd value={task.owner} options={alphaSort(allOwners)} onChange={v=>onUpdate({owner:v})} placeholder="Person"/>
+      <label style={{display:"flex",alignItems:"center",gap:3,fontSize:10,color:"#666",cursor:"pointer"}}><input type="checkbox" checked={task.focusToday} onChange={e=>onUpdate({focusToday:e.target.checked})}/> Today</label>
+    </div>}
+  </div>;
+}
+
 // ─── Import Modal ───
 function ImportModal({mode,onImportOne,onClose,categories,projects,levers,allOwners,realms,existingTasks}){
   const[input,setInput]=useState("");const[error,setError]=useState(null);
@@ -179,25 +204,7 @@ function ImportModal({mode,onImportOne,onClose,categories,projects,levers,allOwn
       </div>
       {staged?<div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><div style={{fontSize:12,fontWeight:700,fontFamily:FS}}>📋 {liveIds.size} added · {skippedIds.size} skipped · {rem} remaining{dupeCount>0&&<span style={{color:"#E8590C",marginLeft:6}}>⚠️ {dupeCount} possible dupe{dupeCount>1?"s":""}</span>}</div><button onClick={()=>setStaged(null)} style={{background:"#f5f3ee",color:"#2c2a25",border:"1px solid #e2e0db",borderRadius:5,padding:"3px 8px",fontSize:10,fontWeight:600,cursor:"pointer"}}>← Back</button></div>
-        <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:14}}>{staged.map((t,i)=>{const isLive=liveIds.has(i);const isSkipped=skippedIds.has(i);const isDone=isLive||isSkipped;const[et,setEt]=useState(false);const[tv,setTv]=useState(t.text);const commit=()=>{upS(i,{text:tv});setEt(false);};
-          return <div key={i} style={{border:`1px solid ${t._dupe&&!isDone?"#F59F00":"#e8e6e1"}`,borderRadius:7,padding:"8px 10px",background:isLive?"#f0fdf4":isSkipped?"#f8f8f6":t._dupe?"#FFFBF0":"#FFFDF7",opacity:isDone?0.45:1}}>
-            {t._dupe&&!isDone&&<div style={{fontSize:9,fontWeight:700,color:"#E8590C",marginBottom:4,fontFamily:FS}}>⚠️ POSSIBLE DUPLICATE — already in your task list</div>}
-            <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:isDone?0:5}}>
-              <button onClick={()=>goOne(i)} disabled={isDone} style={{background:isLive?"#86efac":"#2B8A3E",color:isLive?"#166534":"#fff",border:"none",borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:700,cursor:isDone?"default":"pointer",display:"flex",alignItems:"center",gap:2,flexShrink:0}}>{isLive?<><Ic name="check" size={9} color="#166534"/> Added</>:<><Ic name="zap" size={9} color="#fff"/> Go Live</>}</button>
-              {t._dupe&&!isDone&&<button onClick={()=>skipOne(i)} style={{background:"#F59F00",color:"#fff",border:"none",borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:2,flexShrink:0}}>Skip Dupe</button>}
-              {isSkipped&&<span style={{fontSize:10,color:"#999",fontFamily:FS}}>Skipped</span>}
-              {et?<input value={tv} onChange={e=>setTv(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==="Enter")commit();}} autoFocus style={{flex:1,fontSize:12,fontFamily:FF,border:"1px solid #d4d0c8",borderRadius:4,padding:"2px 5px",outline:"none"}}/>
-              :<div onClick={()=>{if(!isDone)setEt(true);}} style={{flex:1,fontSize:12,fontFamily:FF,fontWeight:500,color:isDone?"#999":"#2c2a25",cursor:isDone?"default":"text",display:"flex",alignItems:"center",gap:4,textDecoration:isDone?"line-through":"none"}}>{t.text}{!isDone&&<Ic name="edit" size={10} color="#b5b0a8"/>}</div>}
-              <div onClick={()=>rmS(i)} style={{cursor:"pointer",opacity:0.3}}><Ic name="trash" size={12} color="#E8590C"/></div>
-            </div>
-            {!isDone&&<div style={{display:"flex",flexWrap:"wrap",gap:3}}>
-              <Dd value={t.category} options={categories} onChange={v=>upS(i,{category:v})} placeholder="Category"/>
-              <Dd value={t.realm} options={realms} onChange={v=>upS(i,{realm:v})} placeholder="Realm"/>
-              <Dd value={t.project} options={openProjects.map(p=>p.name)} onChange={v=>{const proj=openProjects.find(p=>p.name===v);upS(i,{project:v,lever:proj?.lever||t.lever});}} placeholder="Project"/>
-              <Dd value={t.owner} options={alphaSort(allOwners)} onChange={v=>upS(i,{owner:v})} placeholder="Person"/>
-              <label style={{display:"flex",alignItems:"center",gap:3,fontSize:10,color:"#666",cursor:"pointer"}}><input type="checkbox" checked={t.focusToday} onChange={e=>upS(i,{focusToday:e.target.checked})}/> Today</label>
-            </div>}
-          </div>;})}</div>
+        <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:14}}>{staged.map((t,i)=><StagedRow key={i} task={t} index={i} isLive={liveIds.has(i)} isSkipped={skippedIds.has(i)} categories={categories} projects={openProjects} levers={levers} allOwners={allOwners} realms={realms} onUpdate={u=>upS(i,u)} onRemove={()=>rmS(i)} onGoLive={()=>goOne(i)} onSkip={()=>skipOne(i)}/>)}</div>
         {allDone?<button onClick={onClose} style={{width:"100%",background:"#2c2a25",color:"#fff",border:"none",borderRadius:8,padding:"9px",fontSize:12,fontWeight:700,cursor:"pointer"}}>✅ Done — Close</button>
         :rem>0?<button onClick={goRest} style={{width:"100%",background:"#2B8A3E",color:"#fff",border:"none",borderRadius:8,padding:"9px",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Ic name="rocket" size={14} color="#fff"/>Go Live — {rem} New{dupeRem>0?` (${dupeRem} dupe${dupeRem>1?"s":""} need review)`:""}</button>
         :dupeRem>0?<div style={{textAlign:"center",fontSize:11,color:"#999",padding:"8px 0"}}>Only duplicates remaining — Go Live or Skip each one above, or <button onClick={onClose} style={{background:"transparent",border:"none",color:"#1971C2",fontWeight:600,cursor:"pointer",fontSize:11,textDecoration:"underline"}}>close</button></div>
