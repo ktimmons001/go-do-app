@@ -335,7 +335,8 @@ export default function GoDoApp(){
   // Projects tab: flat list, draggable, lever shown small
   const renderProjectView=()=>{
     if(projects.length===0)return <div style={{padding:"20px 0",textAlign:"center",color:"#b5b0a8",fontSize:11}}>No projects. Add in Settings.</div>;
-    return <div onDragEnd={()=>{setProjDragIdx(null);setProjOverIdx(null);}}>{projects.map((proj,pi)=>{
+    const unassigned=filtered.filter(t=>!t.project);const uoc=unassigned.filter(t=>!["Done","Cancelled"].includes(t.status)).length;
+    return <><div onDragEnd={()=>{setProjDragIdx(null);setProjOverIdx(null);}}>{projects.map((proj,pi)=>{
       const pt=filtered.filter(t=>t.project===proj.name);const oc=pt.filter(t=>!["Done","Cancelled"].includes(t.status)).length;const lo=levers.find(l=>l.name===proj.lever);
       return <div key={proj.name} style={{marginTop:8}}
         draggable onDragStart={()=>setProjDragIdx(pi)} onDragOver={e=>{e.preventDefault();setProjOverIdx(pi);}} onDrop={e=>{e.preventDefault();handleProjDrop(pi);}}>
@@ -349,13 +350,18 @@ export default function GoDoApp(){
         </div>
         {pt.length===0?<div style={{padding:"2px 0 2px 24px",color:"#b5b0a8",fontSize:10,fontStyle:"italic"}}>No tasks</div>:renderTasks(pt)}
       </div>;
-    })}</div>;
+    })}</div>
+    {unassigned.length>0&&<><SH icon="list" label="No Project" count={uoc} color="#999"/>{renderTasks(unassigned)}</>}
+    </>;
   };
 
   const renderLeverView=()=>{
     if(levers.length===0)return <div style={{padding:"20px 0",textAlign:"center",color:"#b5b0a8",fontSize:11}}>No levers.</div>;
-    return levers.map(lever=>{const lt=filtered.filter(t=>t.lever===lever.name);const oc=lt.filter(t=>!["Done","Cancelled"].includes(t.status)).length;
-      return <div key={lever.name}><SH icon="layers" label={lever.name} count={oc} color={lever.color} empty={lt.length===0}/>{lt.length>0?renderTasks(lt):<div style={{padding:"2px 0",color:"#b5b0a8",fontSize:10,fontStyle:"italic"}}>No tasks</div>}</div>;});
+    const unassigned=filtered.filter(t=>!t.lever);const uoc=unassigned.filter(t=>!["Done","Cancelled"].includes(t.status)).length;
+    return <>{levers.map(lever=>{const lt=filtered.filter(t=>t.lever===lever.name);const oc=lt.filter(t=>!["Done","Cancelled"].includes(t.status)).length;
+      return <div key={lever.name}><SH icon="layers" label={lever.name} count={oc} color={lever.color} empty={lt.length===0}/>{lt.length>0?renderTasks(lt):<div style={{padding:"2px 0",color:"#b5b0a8",fontSize:10,fontStyle:"italic"}}>No tasks</div>}</div>;})}
+    {unassigned.length>0&&<><SH icon="layers" label="No Lever" count={uoc} color="#999"/>{renderTasks(unassigned)}</>}
+    </>;
   };
 
   // People tab: show ALL tasks with an owner (not just Follow Up)
