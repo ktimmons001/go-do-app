@@ -268,7 +268,7 @@ export default function GoDoApp(){
   const[tasks,setTasks]=useState([]);const[projects,setProjects]=useState([]);const[levers,setLevers]=useState([]);const[categories,setCategories]=useState(DEFAULT_CATEGORIES);const[realms,setRealms]=useState(DEFAULT_REALMS);const[owners,setOwners]=useState([]);
   const[view,setView]=useState("work");const[showSettings,setShowSettings]=useState(false);const[importMode,setImportMode]=useState(null);const[loaded,setLoaded]=useState(false);const[fStatus,setFStatus]=useState("active");const[search,setSearch]=useState("");
   const[dragId,setDragId]=useState(null);const[dragOverId,setDragOverId]=useState(null);const[expandedFollowUps,setExpandedFollowUps]=useState({});const[compact,setCompact]=useState(true);
-  const[undoTask,setUndoTask]=useState(null);const[projDragIdx,setProjDragIdx]=useState(null);const[projOverIdx,setProjOverIdx]=useState(null);
+  const[undoTask,setUndoTask]=useState(null);const[projDragIdx,setProjDragIdx]=useState(null);const[projOverIdx,setProjOverIdx]=useState(null);const[copied,setCopied]=useState(false);
 
   useEffect(()=>{(async()=>{const[t,p,l,c,r,o]=await Promise.all([ldM(SK.tasks,OLD_SK.tasks,[]),ldM(SK.projects,OLD_SK.projects,[]),ldM(SK.levers,OLD_SK.levers,DEFAULT_LEVERS),ldM(SK.categories,OLD_SK.categories,DEFAULT_CATEGORIES),ld(SK.realms,DEFAULT_REALMS),ldM(SK.owners,OLD_SK.owners,[])]);setTasks(t);setProjects(p);setLevers(l);setCategories(c);setRealms(r);setOwners(o);setLoaded(true);})();},[]);
   useEffect(()=>{if(loaded)sv(SK.tasks,tasks);},[tasks,loaded]);useEffect(()=>{if(loaded)sv(SK.projects,projects);},[projects,loaded]);useEffect(()=>{if(loaded)sv(SK.levers,levers);},[levers,loaded]);useEffect(()=>{if(loaded)sv(SK.categories,categories);},[categories,loaded]);useEffect(()=>{if(loaded)sv(SK.realms,realms);},[realms,loaded]);useEffect(()=>{if(loaded)sv(SK.owners,owners);},[owners,loaded]);
@@ -389,6 +389,7 @@ export default function GoDoApp(){
         </div>
         <div style={{display:"flex",gap:3,alignItems:"center"}}>
           <button onClick={()=>setCompact(!compact)} style={hb}><Ic name={compact?"maximize":"minimize"} size={12} color="#E8D5B7"/></button>
+          <button onClick={()=>{const active=tasks.filter(t=>ACTIVE_STATUSES.includes(t.status));const j=JSON.stringify(active.map(({id,createdAt,...t})=>t),null,1);navigator.clipboard.writeText(j);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={hb}><Ic name="list" size={12} color="#E8D5B7"/>{copied?"Copied!":"Copy"}</button>
           <button onClick={()=>setImportMode("json")} style={hb}><Ic name="code" size={12} color="#E8D5B7"/> Import</button>
           <button onClick={()=>setShowSettings(true)} style={{...hb,padding:"4px 5px"}}><Ic name="settings" size={14} color="#E8D5B7"/></button>
         </div>
